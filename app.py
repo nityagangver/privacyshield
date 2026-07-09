@@ -1,4 +1,5 @@
 import os
+import threading
 from contextlib import asynccontextmanager
 import joblib
 import numpy as np
@@ -30,39 +31,73 @@ class AttackRequest(BaseModel):
     n_samples: int = Field(100, description="Number of samples to draw from train and test")
     epsilon: float = Field(1.0, description="Epsilon privacy budget if model_type is private")
 
-# Lifespan manager
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
+def run_training_in_background(app_state):
     try:
+        app_state.training_progress = "Creating directories..."
         os.makedirs("models", exist_ok=True)
         os.makedirs("graphs", exist_ok=True)
-        import subprocess
-        subprocess.run(["python", "main.py"], check=True)
-
-        app.state.scaler = joblib.load("models/scaler.pkl")
-        app.state.baseline = joblib.load("models/baseline_model.pkl")
-        app.state.dp_models = {
+        
+        required_files = [
+            "models/scaler.pkl",
+            "models/baseline_model.pkl",
+            "models/dp_epsilon_01_model.pkl",
+            "models/dp_epsilon_05_model.pkl",
+            "models/dp_epsilon_1_model.pkl",
+            "models/dp_epsilon_5_model.pkl",
+            "models/dp_epsilon_10_model.pkl",
+            "models/X_train_sample.npy",
+            "models/X_test_sample.npy"
+        ]
+        
+        all_exist = all(os.path.exists(f) for f in required_files)
+        if not all_exist:
+            app_state.training_progress = "Running main.py training script (5-10 minutes)..."
+            import subprocess
+            subprocess.run(["python", "main.py"], check=True)
+        else:
+            app_state.training_progress = "Loading pre-existing models..."
+            
+        app_state.training_progress = "Loading trained pkl files..."
+        app_state.scaler = joblib.load("models/scaler.pkl")
+        app_state.baseline = joblib.load("models/baseline_model.pkl")
+        app_state.dp_models = {
             0.1: joblib.load("models/dp_epsilon_01_model.pkl"),
             0.5: joblib.load("models/dp_epsilon_05_model.pkl"),
             1.0: joblib.load("models/dp_epsilon_1_model.pkl"),
             5.0: joblib.load("models/dp_epsilon_5_model.pkl"),
             10.0: joblib.load("models/dp_epsilon_10_model.pkl"),
         }
-        app.state.dp_model = app.state.dp_models[1.0]
-        app.state.X_train_sample = np.load("models/X_train_sample.npy")
-        app.state.X_test_sample = np.load("models/X_test_sample.npy")
-        app.state.model_loaded = True
-        print("Models, scaler, and samples loaded successfully.")
+        app_state.dp_model = app_state.dp_models[1.0]
+        app_state.X_train_sample = np.load("models/X_train_sample.npy")
+        app_state.X_test_sample = np.load("models/X_test_sample.npy")
+        app_state.models_ready = True
+        app_state.model_loaded = True
+        app_state.training_progress = "Ready"
+        print("Background training and loading finished successfully.")
     except Exception as e:
-        print(f"Error loading models, scaler, or samples: {e}")
-        app.state.scaler = None
-        app.state.baseline = None
-        app.state.dp_models = {}
-        app.state.dp_model = None
-        app.state.X_train_sample = None
-        app.state.X_test_sample = None
-        app.state.model_loaded = False
+        app_state.training_progress = f"Training failed: {str(e)}"
+        print(f"Error during background training/loading: {e}")
+        app_state.models_ready = False
+        app_state.model_loaded = False
+
+# Lifespan manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    app.state.models_ready = False
+    app.state.model_loaded = False
+    app.state.scaler = None
+    app.state.baseline = None
+    app.state.dp_models = {}
+    app.state.dp_model = None
+    app.state.X_train_sample = None
+    app.state.X_test_sample = None
+    app.state.training_progress = "Starting background training..."
+    
+    thread = threading.Thread(target=run_training_in_background, args=(app.state,))
+    thread.daemon = True
+    thread.start()
+    
     yield
     # Shutdown
     pass
@@ -131,8 +166,8 @@ def make_prediction_vector(data: PredictRequest) -> np.ndarray:
 
 @app.post("/predict/standard")
 def predict_standard(data: PredictRequest):
-    if not getattr(app.state, "model_loaded", False) or app.state.baseline is None:
-        raise HTTPException(status_code=503, detail="Baseline model is not loaded")
+    if not getattr(app.state, "models_ready", False) or app.state.baseline is None:
+        raise HTTPException(status_code=503, detail="Models are being trained. Please wait 5-10 minutes and try again. Check /health for status.")
     
     try:
         features_raw = make_prediction_vector(data)
@@ -152,8 +187,8 @@ def predict_standard(data: PredictRequest):
 
 @app.post("/predict/private")
 def predict_private(data: PredictRequest):
-    if not getattr(app.state, "model_loaded", False) or app.state.dp_model is None:
-        raise HTTPException(status_code=503, detail="DP model is not loaded")
+    if not getattr(app.state, "models_ready", False) or app.state.dp_model is None:
+        raise HTTPException(status_code=503, detail="Models are being trained. Please wait 5-10 minutes and try again. Check /health for status.")
     
     try:
         features_raw = make_prediction_vector(data)
@@ -174,8 +209,8 @@ def predict_private(data: PredictRequest):
 
 @app.post("/predict/custom")
 def predict_custom(data: CustomPredictRequest):
-    if not getattr(app.state, "model_loaded", False) or not getattr(app.state, "dp_models", None):
-        raise HTTPException(status_code=503, detail="DP models are not loaded")
+    if not getattr(app.state, "models_ready", False) or not getattr(app.state, "dp_models", None):
+        raise HTTPException(status_code=503, detail="Models are being trained. Please wait 5-10 minutes and try again. Check /health for status.")
     
     epsilon_val = float(data.epsilon)
     supported_epsilons = [0.1, 0.5, 1.0, 5.0, 10.0]
@@ -228,8 +263,8 @@ def predict_custom(data: CustomPredictRequest):
 
 @app.post("/attack/simulate")
 def attack_simulate(request: AttackRequest):
-    if not getattr(app.state, "model_loaded", False):
-        raise HTTPException(status_code=503, detail="Models are not loaded")
+    if not getattr(app.state, "models_ready", False):
+        raise HTTPException(status_code=503, detail="Models are being trained. Please wait 5-10 minutes and try again. Check /health for status.")
     
     X_train_sub = getattr(app.state, "X_train_sample", None)
     X_test_sub = getattr(app.state, "X_test_sample", None)
@@ -322,12 +357,25 @@ def get_attack_results():
 
 @app.get("/health")
 def health_check():
-    loaded = getattr(app.state, "model_loaded", False)
+    ready = getattr(app.state, "models_ready", False)
+    status = "ok" if ready else "training"
+    progress = getattr(app.state, "training_progress", "Initializing...")
     return {
-        "status": "ok",
-        "model_loaded": loaded,
+        "status": status,
+        "model_loaded": ready,
         "baseline_auc": 0.8330,
-        "dp_auc": 0.7883
+        "dp_auc": 0.7883,
+        "training_progress": progress
+    }
+
+@app.get("/status")
+def get_status():
+    ready = getattr(app.state, "models_ready", False)
+    msg = "Ready" if ready else "Training in progress..."
+    return {
+        "models_ready": ready,
+        "message": msg,
+        "training_progress": getattr(app.state, "training_progress", "Initializing...")
     }
 
 # Serving index.html

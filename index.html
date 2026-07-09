@@ -1891,6 +1891,10 @@
                     if (data.model_loaded) {
                         indicator.style.color = "#22c55e";
                         text.textContent = "Healthy & Models Loaded";
+                    } else if (data.status === "training") {
+                        indicator.style.color = "#eab308";
+                        text.textContent = `Training: ${data.training_progress || 'In Progress'}`;
+                        setTimeout(checkHealth, 5000);
                     } else {
                         indicator.style.color = "#eab308";
                         text.textContent = "Degraded (Models Not Loaded)";
