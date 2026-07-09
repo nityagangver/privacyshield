@@ -35,6 +35,11 @@ class AttackRequest(BaseModel):
 async def lifespan(app: FastAPI):
     # Startup
     try:
+        os.makedirs("models", exist_ok=True)
+        os.makedirs("graphs", exist_ok=True)
+        import subprocess
+        subprocess.run(["python", "main.py"], check=True)
+
         app.state.scaler = joblib.load("models/scaler.pkl")
         app.state.baseline = joblib.load("models/baseline_model.pkl")
         app.state.dp_models = {
@@ -70,7 +75,8 @@ app = FastAPI(
 )
 
 # Mount graphs folder as static files
-app.mount("/graphs", StaticFiles(directory="graphs"), name="graphs")
+if os.path.exists("graphs"):
+    app.mount("/graphs", StaticFiles(directory="graphs"), name="graphs")
 
 # CORS
 app.add_middleware(
