@@ -22,8 +22,18 @@ import diffprivlib as dp
 # ── STEP 1: Load and preprocess the dataset ──────────────────
 print("Loading dataset...")
 
-# Path goes up one level to reach the CSV in the main project
-df = pd.read_csv('../WA_Fn-UseC_-Telco-Customer-Churn.csv')
+import os
+import urllib.request
+
+CSV_PATH = 'WA_Fn-UseC_-Telco-Customer-Churn.csv'
+
+if not os.path.exists(CSV_PATH):
+    print("Downloading dataset...")
+    url = "https://raw.githubusercontent.com/nityagangver/ChurnPrediction/main/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+    urllib.request.urlretrieve(url, CSV_PATH)
+    print("Dataset downloaded.")
+
+df = pd.read_csv(CSV_PATH)
 
 print(f"Dataset shape: {df.shape}")
 print(f"Churn rate: {df['Churn'].value_counts(normalize=True)['Yes']:.1%}")
