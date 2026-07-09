@@ -1,0 +1,2373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrivacyShield | Differential Privacy Dashboard</title>
+    <!-- Outfit Font from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #06080e;
+            --panel-bg: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --border-color: #1e293b;
+            --accent-color: #a78bfa;
+            --accent-glow: rgba(167, 139, 250, 0.15);
+            --accent-hover: #c084fc;
+            
+            --red-accent: #f87171;
+            --red-border: rgba(248, 113, 113, 0.4);
+            --red-glow: rgba(248, 113, 113, 0.1);
+            
+            --green-accent: #4ade80;
+            --green-border: rgba(74, 222, 128, 0.4);
+            --green-glow: rgba(74, 222, 128, 0.1);
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            
+            --font-main: 'Outfit', sans-serif;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(167, 139, 250, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(74, 222, 128, 0.03) 0px, transparent 50%);
+        }
+
+        /* Navigation Bar */
+        header {
+            background-color: rgba(6, 8, 14, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+
+        .logo i {
+            color: var(--accent-color);
+            filter: drop-shadow(0 0 8px var(--accent-glow));
+        }
+
+        .logo span {
+            background: linear-gradient(135deg, var(--text-primary) 50%, var(--accent-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        nav {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--text-primary);
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .nav-link.active {
+            box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.3);
+            background-color: rgba(167, 139, 250, 0.05);
+            color: var(--accent-color);
+        }
+
+        /* Main Workspace */
+        main {
+            flex: 1;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2.5rem 2rem;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        h2 i {
+            color: var(--accent-color);
+        }
+
+        /* Glassmorphic Cards */
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            transition: var(--transition);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(167, 139, 250, 0.25);
+            box-shadow: 0 15px 35px -5px rgba(167, 139, 250, 0.05);
+        }
+
+        /* Grid Layouts */
+        .predictor-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Shared Input Form */
+        .form-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group-full {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .label-val {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+
+        /* Sliders */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #1e293b;
+            outline: none;
+            margin: 10px 0;
+            transition: var(--transition);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent-glow);
+            transition: var(--transition);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-hover);
+            transform: scale(1.15);
+        }
+
+        /* Selects & Inputs */
+        select, input[type="text"], input[type="number"] {
+            background-color: rgba(30, 41, 59, 0.4);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+            width: 100%;
+        }
+
+        select:focus, input[type="text"]:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+            background-color: rgba(30, 41, 59, 0.6);
+        }
+
+        /* Toggles grid */
+        .toggle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .toggle-card {
+            background: rgba(30, 41, 59, 0.2);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .toggle-card:hover {
+            border-color: rgba(167, 139, 250, 0.2);
+            background: rgba(30, 41, 59, 0.35);
+        }
+
+        .toggle-card.active {
+            border-color: var(--accent-color);
+            background: rgba(167, 139, 250, 0.05);
+        }
+
+        .toggle-card span {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .toggle-card.active span {
+            color: var(--text-primary);
+        }
+
+        /* Custom Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider-round {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155;
+            transition: .3s;
+            border-radius: 34px;
+        }
+
+        .slider-round:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider-round {
+            background-color: var(--accent-color);
+        }
+
+        input:checked + .slider-round:before {
+            transform: translateX(18px);
+        }
+
+        /* Buttons Group */
+        .btn-group {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        button {
+            flex: 1;
+            font-family: var(--font-main);
+            font-size: 1.05rem;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            border: none;
+            outline: none;
+        }
+
+        .btn-standard {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-standard:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-private {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);
+        }
+
+        .btn-private:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+        }
+
+        /* Panels Container */
+        .panels-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel-standard {
+            border-color: var(--red-border);
+            background: linear-gradient(180deg, var(--card-bg) 0%, var(--red-glow) 100%);
+        }
+
+        .panel-standard:hover {
+            border-color: #ef4444;
+        }
+
+        .panel-private {
+            border-color: var(--green-border);
+            background: linear-gradient(180deg, var(--card-bg) 0%, var(--green-glow) 100%);
+        }
+
+        .panel-private:hover {
+            border-color: #22c55e;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-standard .panel-title { color: #f87171; }
+        .panel-private .panel-title { color: #4ade80; }
+
+        .panel-badge {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+        }
+
+        .panel-standard .panel-badge {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .panel-private .panel-badge {
+            background-color: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        /* Result Display components */
+        .result-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 0;
+            flex-grow: 1;
+        }
+
+        .prob-gauge {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: conic-gradient(#1e293b 0deg, #1e293b 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 1.25rem;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+            transition: var(--transition);
+        }
+
+        .prob-gauge::before {
+            content: '';
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: #0b0f19;
+            z-index: 1;
+        }
+
+        .prob-text-container {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .prob-percent {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .prob-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-status {
+            padding: 0.5rem 1.25rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .badge-churn {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .badge-stay {
+            background-color: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.4);
+        }
+
+        .badge-empty {
+            background-color: rgba(148, 163, 184, 0.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        /* Banner styles */
+        .banner {
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        .banner i {
+            font-size: 1.15rem;
+            margin-top: 2px;
+        }
+
+        .banner-warning {
+            background-color: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .banner-secure {
+            background-color: rgba(34, 197, 94, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            color: #86efac;
+        }
+
+        /* Attack Demo Section */
+        .demo-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.3) 0%, rgba(15, 23, 42, 0.3) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .info-card p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            line-height: 1.6;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background-color: rgba(30, 41, 59, 0.5);
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 1rem;
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        tr:hover td {
+            color: var(--text-primary);
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .status-leak {
+            color: #ef4444;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .status-protected {
+            color: #22c55e;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        /* Graphs Grid */
+        .graphs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .graphs-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .graph-card {
+            background-color: rgba(17, 24, 39, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .graph-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            text-align: left;
+            border-left: 3px solid var(--accent-color);
+            padding-left: 0.75rem;
+        }
+
+        .graph-card img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background-color: #0f1117;
+            transition: var(--transition);
+        }
+
+        .graph-card img:hover {
+            transform: scale(1.015);
+            border-color: var(--accent-color);
+        }
+
+        /* About Section */
+        .about-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .about-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.25) 0%, rgba(15, 23, 42, 0.25) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .about-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .about-card h3 i {
+            color: var(--accent-color);
+        }
+
+        .about-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .stats-badge {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .stats-num {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .stats-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .link-card {
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.08) 0%, rgba(6, 8, 14, 0.4) 100%);
+            border-color: rgba(167, 139, 250, 0.25);
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .link-card:hover {
+            border-color: var(--accent-color);
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.12) 0%, rgba(6, 8, 14, 0.5) 100%);
+            transform: translateY(-3px);
+        }
+
+        .link-card i {
+            font-size: 2.5rem;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            filter: drop-shadow(0 0 10px var(--accent-glow));
+        }
+
+        .link-card a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 1.15rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .link-card a:hover {
+            color: var(--accent-hover);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border-color);
+            background-color: rgba(6, 8, 14, 0.9);
+            padding: 1.5rem 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-top: auto;
+        }
+
+        footer p {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @media (max-width: 600px) {
+            footer p {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+
+        /* Loader inside buttons */
+        .spinner {
+            display: inline-block;
+            width: 1.2rem;
+            height: 1.2rem;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* --- Tooltip Styles --- */
+        .tooltip-trigger {
+            color: var(--accent-color);
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-left: 0.3rem;
+            display: inline-flex;
+            align-items: center;
+            vertical-align: middle;
+            opacity: 0.85;
+            transition: var(--transition);
+        }
+        .tooltip-trigger:hover {
+            opacity: 1;
+            color: var(--accent-hover);
+            transform: scale(1.1);
+        }
+
+        /* --- Animated MIA Explanation Styles --- */
+        .mia-explanation {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .mia-step {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: var(--transition);
+        }
+        .mia-step:hover {
+            border-color: rgba(167, 139, 250, 0.3);
+            transform: translateY(-2px);
+        }
+        .mia-step-num {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--accent-color);
+            background: rgba(167, 139, 250, 0.1);
+            padding: 3px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(167, 139, 250, 0.2);
+        }
+        .mia-animation-container {
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1.25rem 0;
+            width: 100%;
+            position: relative;
+            background: rgba(11, 15, 25, 0.6);
+            border-radius: 8px;
+            border: 1px dashed rgba(255, 255, 255, 0.05);
+        }
+
+        /* Step 1 animation: Attacker queries model */
+        .attacker-icon, .model-icon {
+            font-size: 2.2rem;
+            color: var(--text-primary);
+            z-index: 2;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.05));
+        }
+        .attacker-icon {
+            color: var(--red-accent);
+        }
+        .model-icon {
+            color: var(--accent-color);
+        }
+        .arrow-line {
+            position: absolute;
+            width: 55%;
+            height: 2px;
+            background: rgba(255,255,255,0.08);
+            z-index: 1;
+        }
+        .arrow-pulse {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-color), 0 0 20px var(--accent-color);
+            animation: sendQuery 2s infinite linear;
+        }
+        @keyframes sendQuery {
+            0% { left: 22%; opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { left: 72%; opacity: 0; }
+        }
+
+        /* Step 2 animation: Model returns confidence gap */
+        .conf-bar-container {
+            display: flex;
+            gap: 1.5rem;
+            align-items: flex-end;
+            height: 80px;
+            padding-bottom: 5px;
+        }
+        .conf-bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .conf-bar {
+            width: 24px;
+            border-radius: 6px 6px 0 0;
+            transform-origin: bottom;
+            animation: barGrow 2.5s infinite ease-in-out;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .conf-bar.member {
+            background: linear-gradient(to top, rgba(239, 68, 68, 0.4), #ef4444);
+            height: 65px;
+            border: 1px solid rgba(239, 68, 68, 0.6);
+            animation-delay: 0.1s;
+        }
+        .conf-bar.nonmember {
+            background: linear-gradient(to top, rgba(59, 130, 246, 0.4), #3b82f6);
+            height: 38px;
+            border: 1px solid rgba(59, 130, 246, 0.6);
+            animation-delay: 0.9s;
+        }
+        .conf-bar-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            font-weight: 500;
+        }
+        @keyframes barGrow {
+            0%, 100% { transform: scaleY(0.9); }
+            50% { transform: scaleY(1.08); }
+        }
+
+        /* Step 3 animation: Attacker decision boundary */
+        .decision-boundary-container {
+            width: 100%;
+            height: 80px;
+            display: flex;
+            position: relative;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .boundary-line {
+            position: absolute;
+            width: 2px;
+            height: 80%;
+            background: #eab308; /* Yellow threshold line */
+            left: 50%;
+            z-index: 2;
+            box-shadow: 0 0 8px #eab308;
+            animation: pulseLine 2s infinite ease-in-out;
+        }
+        .dot-sample {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            animation: floatDots 3s infinite ease-in-out;
+        }
+        .dot-sample.member {
+            background: #ef4444;
+            left: 28%;
+            top: 40%;
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+            animation-delay: 0.3s;
+        }
+        .dot-sample.nonmember {
+            background: #3b82f6;
+            left: 68%;
+            top: 50%;
+            box-shadow: 0 0 6px rgba(59, 130, 246, 0.8);
+            animation-delay: 1.1s;
+        }
+        @keyframes pulseLine {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; transform: scaleX(1.5); }
+        }
+        @keyframes floatDots {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            50% { transform: translateY(-5px) translateX(2px); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header>
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>PrivacyShield</span>
+            </a>
+            <nav>
+                <a href="#predictor" class="nav-link active" onclick="switchTab('predictor')">
+                    <i class="fa-solid fa-calculator"></i> Predictor
+                </a>
+                <a href="#attack-demo" class="nav-link" onclick="switchTab('attack-demo')">
+                    <i class="fa-solid fa-user-shield"></i> Attack Demo
+                </a>
+                <a href="#about" class="nav-link" onclick="switchTab('about')">
+                    <i class="fa-solid fa-circle-info"></i> About
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main>
+        
+        <!-- SECTION 1: PREDICTOR -->
+        <section id="predictor-section" class="section active">
+            <h2><i class="fa-solid fa-calculator"></i> Customer Churn Predictor</h2>
+            <div class="predictor-grid">
+                
+                <!-- Shared Input Form Card -->
+                <div class="glass-card">
+                    <div class="form-title">
+                        <i class="fa-solid fa-sliders"></i>
+                        <span>Customer Demographics & Contract Settings</span>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <!-- Sliders -->
+                        <div class="form-group">
+                            <label for="tenure">Tenure (Months) <span id="tenure-val" class="label-val">36</span></label>
+                            <input type="range" id="tenure" min="0" max="72" value="36">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="MonthlyCharges">Monthly Charges <span id="monthly-val" class="label-val">$75.00</span></label>
+                            <input type="range" id="MonthlyCharges" min="0" max="150" value="75" step="0.5">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Total Charges (Auto-calculated)</label>
+                            <div style="position: relative;">
+                                <input type="text" id="TotalCharges" value="2700.00" readonly style="padding-left: 2rem; color: #a78bfa; font-weight: 600;">
+                                <span style="position: absolute; left: 0.75rem; top: 0.75rem; color: var(--text-muted);">$</span>
+                            </div>
+                        </div>
+
+                        <!-- Dropdowns -->
+                        <div class="form-group">
+                            <label for="Contract">Contract Duration</label>
+                            <select id="Contract">
+                                <option value="0">Month-to-Month</option>
+                                <option value="1">One Year</option>
+                                <option value="2">Two Year</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="InternetService">Internet Service</label>
+                            <select id="InternetService">
+                                <option value="0">DSL</option>
+                                <option value="1" selected>Fiber Optic</option>
+                                <option value="2">No Internet</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="PaymentMethod">Payment Method</label>
+                            <select id="PaymentMethod">
+                                <option value="0" selected>Electronic Check</option>
+                                <option value="1">Mailed Check</option>
+                                <option value="2">Bank Transfer</option>
+                                <option value="3">Credit Card</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Grid of Binary Switches -->
+                    <div class="toggle-grid">
+                        <div class="toggle-card" onclick="toggleSwitch('SeniorCitizen')">
+                            <span>Senior Citizen: <span id="SeniorCitizen-val" class="label-val">No</span></span>
+                            <label class="switch" onclick="event.stopPropagation();">
+                                <input type="checkbox" id="SeniorCitizen">
+                                <span class="slider-round"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-card" onclick="toggleSwitch('Partner')">
+                            <span>Has Partner: <span id="Partner-val" class="label-val">Yes</span></span>
+                            <label class="switch" onclick="event.stopPropagation();">
+                                <input type="checkbox" id="Partner" checked>
+                                <span class="slider-round"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-card" onclick="toggleSwitch('Dependents')">
+                            <span>Has Dependents: <span id="Dependents-val" class="label-val">No</span></span>
+                            <label class="switch" onclick="event.stopPropagation();">
+                                <input type="checkbox" id="Dependents">
+                                <span class="slider-round"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-card" onclick="toggleSwitch('PhoneService')">
+                            <span>Phone Service: <span id="PhoneService-val" class="label-val">Yes</span></span>
+                            <label class="switch" onclick="event.stopPropagation();">
+                                <input type="checkbox" id="PhoneService" checked>
+                                <span class="slider-round"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-card" onclick="toggleSwitch('PaperlessBilling')">
+                            <span>Paperless Billing: <span id="PaperlessBilling-val" class="label-val">Yes</span></span>
+                            <label class="switch" onclick="event.stopPropagation();">
+                                <input type="checkbox" id="PaperlessBilling" checked>
+                                <span class="slider-round"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Choose Your Privacy Level Section -->
+                    <div style="margin: 1.5rem 0; padding: 1.25rem; border: 1px solid rgba(167, 139, 250, 0.2); border-radius: 8px; background: rgba(17, 24, 39, 0.45);">
+                        <div class="form-title" style="border-bottom: none; margin-bottom: 0.75rem; font-size: 1rem;">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <span>Choose Your Privacy Level</span>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; align-items: center;">
+                            <!-- Slider Container -->
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Privacy Budget (ε)</span>
+                                    <span id="epsilon-display-val" style="font-weight: 800; color: var(--accent-color); font-size: 1.1rem;">ε = 1.0</span>
+                                </div>
+                                <input type="range" id="epsilon-slider" min="0" max="4" value="2" step="1" style="width: 100%;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                    <span>0.1 (Max Privacy)</span>
+                                    <span>1.0</span>
+                                    <span>10.0 (Max Accuracy)</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Epsilon Info/Tradeoff Panel -->
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; background: rgba(30, 41, 59, 0.25); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                                    <span>Protection Level:</span>
+                                    <span id="eps-badge" class="badge-status badge-stay" style="padding: 2px 8px; font-size: 0.75rem;">Strong</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                    <span>Expected Model AUC:</span>
+                                    <span id="eps-model-auc" style="font-weight: 700; color: #a78bfa;">0.7883</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                    <span>Expected Attack AUC:</span>
+                                    <span id="eps-attack-auc" style="font-weight: 700; color: #34d399;">0.5086</span>
+                                </div>
+                                <div style="border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 0.5rem; text-align: center;">
+                                    <div id="eps-tradeoff-bar" style="font-family: monospace; font-size: 0.85rem; color: var(--text-secondary); letter-spacing: 1px;">
+                                        Privacy [████░░░░░░] Accuracy
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Tradeoff Visualizer (JS Canvas) -->
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;">
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Live Tradeoff Curve</div>
+                                <canvas id="tradeoff-canvas" width="160" height="90" style="border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; background: #0b0f19;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Predict Actions -->
+                    <div class="btn-group">
+                        <button class="btn-standard" id="btn-run-standard" onclick="runPrediction('standard')">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span>Predict Without Privacy</span>
+                        </button>
+                        <button class="btn-private" id="btn-run-private" onclick="runPrediction('private')">
+                            <i class="fa-solid fa-user-lock"></i>
+                            <span>Predict With Privacy (ε=1.0)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Prediction Results Panels -->
+                <div class="panels-container">
+                    
+                    <!-- STANDARD PANEL (Red Border) -->
+                    <div class="glass-card panel panel-standard">
+                        <div class="panel-header">
+                            <span class="panel-title">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Standard Model
+                            </span>
+                            <span class="panel-badge">Baseline</span>
+                        </div>
+                        
+                        <div class="result-body" id="standard-result-body">
+                            <div class="prob-gauge" id="standard-gauge">
+                                <div class="prob-text-container">
+                                    <div class="prob-percent" id="standard-prob-pct">--%</div>
+                                    <div class="prob-label">Churn Prob</div>
+                                </div>
+                            </div>
+                            <div class="badge-status badge-empty" id="standard-badge">
+                                <i class="fa-solid fa-clock"></i> Awaiting Prediction
+                            </div>
+                            <div style="margin-top: 0.50rem; font-size: 0.9rem; color: var(--text-secondary);">
+                                Confidence: <span id="standard-confidence" style="font-weight: 700;">--</span>
+                            </div>
+                        </div>
+
+                        <div class="banner banner-warning">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <div id="standard-warning-text">No prediction made yet. Run standard prediction to view warnings.</div>
+                        </div>
+                    </div>
+
+                    <!-- PRIVATE PANEL (Green Border) -->
+                    <div class="glass-card panel panel-private">
+                        <div class="panel-header">
+                            <span class="panel-title">
+                                <i class="fa-solid fa-user-shield"></i> Private Model
+                            </span>
+                            <span class="panel-badge">ε=1.0 DP</span>
+                        </div>
+                        
+                        <div class="result-body" id="private-result-body">
+                            <div class="prob-gauge" id="private-gauge">
+                                <div class="prob-text-container">
+                                    <div class="prob-percent" id="private-prob-pct">--%</div>
+                                    <div class="prob-label">Churn Prob</div>
+                                </div>
+                            </div>
+                            <div class="badge-status badge-empty" id="private-badge">
+                                <i class="fa-solid fa-clock"></i> Awaiting Prediction
+                            </div>
+                            <div style="margin-top: 0.50rem; font-size: 0.9rem; color: var(--text-secondary);">
+                                Confidence: <span id="private-confidence" style="font-weight: 700;">--</span>
+                            </div>
+                            <div style="margin-top: 0.50rem; font-size: 0.9rem; color: var(--text-secondary); display: none;" id="private-budget-row">
+                                Privacy Budget: <span style="font-weight: 700; color: var(--accent-color);">ε = 1.0</span>
+                            </div>
+                        </div>
+
+                        <div class="banner banner-secure">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <div id="private-guarantee-text">No prediction made yet. Run private prediction to view mathematical privacy guarantees.</div>
+                        </div>
+                    </div>
+                    
+                </div>
+
+                <!-- Side-by-Side Comparison Row -->
+                <div id="comparison-card" class="glass-card" style="display: none; margin-top: 1rem; border-color: rgba(167, 139, 250, 0.3); background: linear-gradient(135deg, var(--panel-bg) 0%, rgba(167, 139, 250, 0.02) 100%);">
+                    <div class="form-title" style="border-bottom-color: rgba(167, 139, 250, 0.15); margin-bottom: 1.25rem;">
+                        <i class="fa-solid fa-code-compare"></i>
+                        <span>Side-by-Side Model Comparison</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; text-align: center;">
+                        <div class="toggle-card" style="background: rgba(30, 41, 59, 0.25); display: flex; flex-direction: column; gap: 0.25rem; align-items: center; justify-content: center; padding: 1rem; border-color: var(--border-color); cursor: default;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Standard Churn Prob</span>
+                            <div id="comp-standard-prob" style="font-size: 1.8rem; font-weight: 800; color: #f87171;">--%</div>
+                        </div>
+                        <div class="toggle-card" style="background: rgba(30, 41, 59, 0.25); display: flex; flex-direction: column; gap: 0.25rem; align-items: center; justify-content: center; padding: 1rem; border-color: var(--border-color); cursor: default;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Private Churn Prob</span>
+                            <div id="comp-private-prob" style="font-size: 1.8rem; font-weight: 800; color: #4ade80;">--%</div>
+                        </div>
+                        <div class="toggle-card" style="background: rgba(30, 41, 59, 0.25); display: flex; flex-direction: column; gap: 0.25rem; align-items: center; justify-content: center; padding: 1rem; border-color: var(--border-color); cursor: default;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Privacy Cost (Delta)</span>
+                            <div id="comp-delta" style="font-size: 1.8rem; font-weight: 800; color: var(--accent-color);">--%</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1.25rem; padding: 1rem; background-color: rgba(167, 139, 250, 0.05); border-left: 4px solid var(--accent-color); border-radius: 6px;">
+                        <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fa-solid fa-circle-question" style="color: var(--accent-color);"></i> Which one to trust and why?
+                        </div>
+                        <p id="comp-trust-text" style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; margin: 0;"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: ATTACK DEMO -->
+        <section id="attack-demo-section" class="section">
+            <h2><i class="fa-solid fa-user-shield"></i> Membership Inference Attack Demo</h2>
+            <div class="demo-layout">
+                
+                <!-- Definition & Animated Explanation -->
+                <div class="glass-card">
+                    <div class="form-title">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>What is a Membership Inference Attack? <span class="tooltip-trigger" onclick="showTooltip(event, 'membership' + ' inference')"><i class="fa-regular fa-circle-question"></i></span></span>
+                    </div>
+                    <p style="margin-bottom: 1.5rem; color: var(--text-secondary); line-height: 1.5; font-size: 0.95rem;">
+                        A <strong>Membership Inference Attack (MIA)</strong> exploits the confidence difference of a machine learning model. Because standard models adapt tightly to their training datasets, they predict known members with significantly higher confidence than unseen ones. An attacker can analyze these confidence margins to accurately guess whether a specific user's private record was used to train the model.
+                    </p>
+                    
+                    <!-- Animated Explanation Grid -->
+                    <div class="mia-explanation">
+                        <div class="mia-step">
+                            <span class="mia-step-num">Step 1</span>
+                            <h4 style="margin-top: 1.25rem; font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">1. Query Model</h4>
+                            <div class="mia-animation-container">
+                                <i class="fa-solid fa-user-secret attacker-icon"></i>
+                                <div class="arrow-line">
+                                    <div class="arrow-pulse"></div>
+                                </div>
+                                <i class="fa-solid fa-brain model-icon" style="margin-left: 55%;"></i>
+                            </div>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
+                                Attacker queries the model with a known target customer record.
+                            </p>
+                        </div>
+                        
+                        <div class="mia-step">
+                            <span class="mia-step-num">Step 2</span>
+                            <h4 style="margin-top: 1.25rem; font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">2. Confidence Gap</h4>
+                            <div class="mia-animation-container">
+                                <div class="conf-bar-container">
+                                    <div class="conf-bar-group">
+                                        <div class="conf-bar member"></div>
+                                        <span class="conf-bar-label">Member</span>
+                                    </div>
+                                    <div class="conf-bar-group">
+                                        <div class="conf-bar nonmember"></div>
+                                        <span class="conf-bar-label">Unseen</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
+                                Model returns high confidence predictions for training members, but lower confidence for unseen records.
+                            </p>
+                        </div>
+                        
+                        <div class="mia-step">
+                            <span class="mia-step-num">Step 3</span>
+                            <h4 style="margin-top: 1.25rem; font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">3. Exploit Boundary</h4>
+                            <div class="mia-animation-container">
+                                <div class="decision-boundary-container">
+                                    <div class="boundary-line"></div>
+                                    <div class="dot-sample member"></div>
+                                    <div class="dot-sample nonmember"></div>
+                                </div>
+                            </div>
+                            <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
+                                Attacker exploits this gap, drawing a decision threshold to successfully guess who is in the dataset.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Simulator Panel -->
+                <div class="glass-card">
+                    <div class="form-title" style="display: flex; justify-content: space-between; align-items: center; border-bottom-color: rgba(167, 139, 250, 0.15); margin-bottom: 1.25rem;">
+                        <span>
+                            <i class="fa-solid fa-bolt" style="color: var(--accent-color);"></i>
+                            <span>Interactive Attack Simulator & Comparison</span>
+                        </span>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <label style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">Sample Count:</label>
+                            <select id="attack-samples" style="background: rgba(30, 41, 59, 0.6); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; padding: 4px 8px; font-size: 0.8rem; font-family: var(--font-main); outline: none;">
+                                <option value="100" selected>100</option>
+                                <option value="250">250</option>
+                                <option value="500">500</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5;">
+                        Simulate a live membership inference attack. Choose a sample size and trigger the attack against both models. The simulator queries the models with training members and unseen records, maps the predictions, and graphs the confidence distributions using HTML5 Canvas.
+                    </p>
+                    
+                    <div style="display: flex; gap: 1rem; margin-bottom: 2rem; justify-content: center; flex-wrap: wrap;">
+                        <button class="btn btn-primary" id="btn-run-baseline-attack" onclick="simulateAttack('baseline')" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border-color: #ef4444;">
+                            <i class="fa-solid fa-skull-crossbones"></i> Run Baseline Attack
+                        </button>
+                        <button class="btn btn-secondary" id="btn-run-private-attack" onclick="simulateAttack('private')" style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); border-color: #22c55e; color: white;">
+                            <i class="fa-solid fa-shield-halved"></i> Run DP Attack (ε=<span id="sim-eps-val">1.0</span>)
+                        </button>
+                        <button class="btn btn-accent" id="btn-run-both-attacks" onclick="simulateBothAttacks()" style="background: linear-gradient(135deg, var(--accent-color) 0%, #8b5cf6 100%); box-shadow: 0 4px 12px var(--accent-glow);">
+                            <i class="fa-solid fa-circle-play"></i> Run Side-by-Side Simulation
+                        </button>
+                    </div>
+
+                    <!-- Comparison cards side-by-side -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+                        
+                        <!-- Baseline Attack Results -->
+                        <div class="toggle-card" id="base-attack-result-card" style="border-color: rgba(239, 68, 68, 0.15); background: rgba(239, 68, 68, 0.02); cursor: default; display: flex; flex-direction: column; padding: 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(239, 68, 68, 0.1); padding-bottom: 0.5rem;">
+                                <span style="font-weight: 700; color: #f87171; font-size: 0.95rem;"><i class="fa-solid fa-triangle-exclamation"></i> Baseline Attack</span>
+                                <span class="badge-status badge-churn" id="base-atk-status-badge" style="font-size: 0.75rem; padding: 2px 8px; font-weight: 700; background: rgba(239, 68, 68, 0.15); border-color: #ef4444; color: #f87171;">Awaiting Run</span>
+                            </div>
+                            
+                            <div id="base-atk-spinner" style="display: none; text-align: center; padding: 3rem 0; flex-grow: 1; align-items: center; justify-content: center; flex-direction: column;">
+                                <div class="spinner" style="border-top-color: #ef4444; width: 2rem; height: 2rem; border-width: 4px; margin-bottom: 0.75rem;"></div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">Querying Baseline Model...</div>
+                            </div>
+                            
+                            <div id="base-atk-content">
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center; margin-bottom: 1rem;">
+                                    <div style="background: rgba(15, 23, 42, 0.5); padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                                        <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase;">Accuracy</div>
+                                        <div id="base-sim-acc" style="font-size: 1.25rem; font-weight: 800; color: #f87171; margin-top: 2px;">--%</div>
+                                    </div>
+                                    <div style="background: rgba(15, 23, 42, 0.5); padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                                        <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase;">Correct</div>
+                                        <div id="base-sim-guesses" style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary); margin-top: 2px;">-- / --</div>
+                                    </div>
+                                    <div style="background: rgba(15, 23, 42, 0.5); padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                                        <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase;">Attack AUC <span class="tooltip-trigger" onclick="showTooltip(event, 'auc')"><i class="fa-regular fa-circle-question"></i></span></div>
+                                        <div id="base-sim-auc" style="font-size: 1.25rem; font-weight: 800; color: #f87171; margin-top: 2px;">--</div>
+                                    </div>
+                                </div>
+                                
+                                <div style="background: #07090e; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 0.5rem; margin-bottom: 1rem;">
+                                    <canvas id="base-atk-canvas" width="340" height="170" style="width: 100%; height: 170px; display: block;"></canvas>
+                                </div>
+                                
+                                <p id="base-sim-desc" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; text-align: center; margin: 0; min-height: 38px;"></p>
+                            </div>
+                        </div>
+
+                        <!-- DP Attack Results -->
+                        <div class="toggle-card" id="priv-attack-result-card" style="border-color: rgba(74, 222, 128, 0.15); background: rgba(74, 222, 128, 0.02); cursor: default; display: flex; flex-direction: column; padding: 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(74, 222, 128, 0.1); padding-bottom: 0.5rem;">
+                                <span style="font-weight: 700; color: #4ade80; font-size: 0.95rem;"><i class="fa-solid fa-shield-halved"></i> DP Attack (ε=<span id="priv-sim-eps-label">1.0</span>)</span>
+                                <span class="badge-status badge-stay" id="priv-atk-status-badge" style="font-size: 0.75rem; padding: 2px 8px; font-weight: 700; background: rgba(74, 222, 128, 0.15); border-color: #4ade80; color: #4ade80;">Awaiting Run</span>
+                            </div>
+                            
+                            <div id="priv-atk-spinner" style="display: none; text-align: center; padding: 3rem 0; flex-grow: 1; align-items: center; justify-content: center; flex-direction: column;">
+                                <div class="spinner" style="border-top-color: #4ade80; width: 2rem; height: 2rem; border-width: 4px; margin-bottom: 0.75rem;"></div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">Querying Differentially Private Model...</div>
+                            </div>
+                            
+                            <div id="priv-atk-content">
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center; margin-bottom: 1rem;">
+                                    <div style="background: rgba(15, 23, 42, 0.5); padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                                        <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase;">Accuracy</div>
+                                        <div id="priv-sim-acc" style="font-size: 1.25rem; font-weight: 800; color: #4ade80; margin-top: 2px;">--%</div>
+                                    </div>
+                                    <div style="background: rgba(15, 23, 42, 0.5); padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                                        <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase;">Correct</div>
+                                        <div id="priv-sim-guesses" style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary); margin-top: 2px;">-- / --</div>
+                                    </div>
+                                    <div style="background: rgba(15, 23, 42, 0.5); padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                                        <div style="font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase;">Attack AUC <span class="tooltip-trigger" onclick="showTooltip(event, 'auc')"><i class="fa-regular fa-circle-question"></i></span></div>
+                                        <div id="priv-sim-auc" style="font-size: 1.25rem; font-weight: 800; color: #4ade80; margin-top: 2px;">--</div>
+                                    </div>
+                                </div>
+                                
+                                <div style="background: #07090e; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 0.5rem; margin-bottom: 1rem;">
+                                    <canvas id="priv-atk-canvas" width="340" height="170" style="width: 100%; height: 170px; display: block;"></canvas>
+                                </div>
+                                
+                                <p id="priv-sim-desc" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; text-align: center; margin: 0; min-height: 38px;"></p>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Side-by-Side Comparison Analysis Card -->
+                    <div id="simulation-summary-card" class="banner banner-secure" style="display: none; margin-top: 1.5rem; border-color: rgba(167, 139, 250, 0.3); background: linear-gradient(135deg, var(--panel-bg) 0%, rgba(167, 139, 250, 0.04) 100%);">
+                        <i class="fa-solid fa-chart-line" style="color: var(--accent-color); font-size: 1.25rem;"></i>
+                        <div>
+                            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem; margin-bottom: 0.25rem;">Live Simulation Comparison Analysis</div>
+                            <div id="simulation-summary-text" style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.4;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Table -->
+                <div class="glass-card">
+                    <div class="form-title">
+                        <i class="fa-solid fa-table-list"></i>
+                        <span>Model Attack Resistance Comparison</span>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Model Configuration</th>
+                                    <th>Attack AUC <span class="tooltip-trigger" onclick="showTooltip(event, 'auc')"><i class="fa-regular fa-circle-question"></i></span></th>
+                                    <th>Privacy Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="font-weight: 600; color: var(--text-primary);">Baseline RandomForest (No Privacy)</td>
+                                    <td style="font-family: monospace; font-size: 1.05rem;">0.5672</td>
+                                    <td><span class="status-leak"><i class="fa-solid fa-circle-xmark"></i> Privacy Leak Detected</span></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600; color: var(--text-primary);">Differentially Private RandomForest (ε=1.0 <span class="tooltip-trigger" onclick="showTooltip(event, 'epsilon')"><i class="fa-regular fa-circle-question"></i></span>)</td>
+                                    <td style="font-family: monospace; font-size: 1.05rem;">0.5086</td>
+                                    <td><span class="status-protected"><i class="fa-solid fa-circle-check"></i> Protected (Near Random Guessing)</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Visualizations Grid -->
+                <div class="graphs-grid">
+                    <div class="graph-card">
+                        <h3>Privacy-Utility Tradeoff (ε vs Model AUC)</h3>
+                        <img src="/graphs/privacy_utility_tradeoff.png" alt="Privacy-Utility Tradeoff Graph">
+                    </div>
+                    <div class="graph-card">
+                        <h3>Attack AUC Success Rate & Pareto Frontier</h3>
+                        <img src="/graphs/attack_comparison.png" alt="Attack Comparison Graph">
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+
+        <!-- SECTION 3: ABOUT -->
+        <section id="about-section" class="section">
+            <h2><i class="fa-solid fa-circle-info"></i> About PrivacyShield</h2>
+            <div class="about-grid">
+                
+                <div class="glass-card about-card">
+                    <h3><i class="fa-solid fa-lock"></i> What is Differential Privacy?</h3>
+                    <p>
+                        Differential Privacy (DP) is a rigorous mathematical framework that guarantees the privacy of individuals in a dataset. By injecting calibrated noise during model training (e.g., using diffprivlib's differentially private algorithms), the model learns aggregate population patterns without memorizing the specific values of any individual's record.
+                    </p>
+                </div>
+
+                <div class="glass-card about-card">
+                    <h3><i class="fa-solid fa-chart-line"></i> What is Epsilon (ε)?</h3>
+                    <p>
+                        Epsilon (ε) represents the "privacy budget." A lower ε means stronger privacy protection because more noise is added, making it harder to leak details. Conversely, a higher ε adds less noise, yielding a model closer to baseline performance but with weaker mathematical privacy guarantees. An ε of 1.0 represents the optimal sweet spot.
+                    </p>
+                </div>
+
+                <div class="glass-card about-card">
+                    <h3><i class="fa-solid fa-database"></i> Training Dataset</h3>
+                    <p>
+                        The models were trained on the IBM Telco Customer Churn dataset, a standard churn optimization dataset comprising customer demographics, services registered, billing information, and historical behavior.
+                    </p>
+                    <div class="stats-badge">
+                        <span class="stats-num">7,043</span>
+                        <span class="stats-label">Total Records</span>
+                    </div>
+                </div>
+
+                <div class="glass-card about-card link-card" onclick="window.open('https://nityagangver-churnpredictor.hf.space', '_blank')">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <h3>Live Churn Project</h3>
+                    <p>Click here to view our main non-private customer churn predictor hosted on Hugging Face Spaces.</p>
+                    <a href="https://nityagangver-churnpredictor.hf.space" target="_blank" onclick="event.stopPropagation();">
+                        nityagangver-churnpredictor.hf.space <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>
+            <span>&copy; 2026 PrivacyShield. Pair programmed and developed with Antigravity.</span>
+            <span>Status: <i class="fa-solid fa-circle" id="health-indicator" style="color: #64748b; font-size: 0.75rem;"></i> API Connection: <span id="health-text" style="font-weight: 600;">Checking...</span></span>
+        </p>
+    </footer>
+
+    <!-- Frontend logic -->
+    <script>
+        // Track prediction values for comparison
+        let standardProb = null;
+        let privateProb = null;
+        let privateEpsilon = 1.0;
+        let privateAttackAUC = 0.5086;
+        let privateLevel = "Strong";
+
+        // Epsilon settings maps
+        const epsilonLevels = [0.1, 0.5, 1.0, 5.0, 10.0];
+        const epsilonModelAUC = {0.1: 0.7312, 0.5: 0.7634, 1.0: 0.7883, 5.0: 0.8189, 10.0: 0.8276};
+        const epsilonAttackAUC = {0.1: 0.5021, 0.5: 0.5034, 1.0: 0.5086, 5.0: 0.5304, 10.0: 0.5565};
+        const epsilonPrivacyLevels = {0.1: "Maximum", 0.5: "Maximum", 1.0: "Strong", 5.0: "Moderate", 10.0: "Minimal"};
+        const epsilonBars = {
+            0.1: "████████░░",
+            0.5: "██████░░░░",
+            1.0: "████░░░░░░",
+            5.0: "██░░░░░░░░",
+            10.0: "█░░░░░░░░░"
+        };
+        const epsilonBadgeClasses = {
+            0.1: "badge-status badge-stay",
+            0.5: "badge-status badge-stay",
+            1.0: "badge-status badge-stay",
+            5.0: "badge-status badge-empty",
+            10.0: "badge-status badge-churn"
+        };
+
+        // Reset previous predictions on input changes to prevent stale comparisons
+        function resetPredictions() {
+            standardProb = null;
+            privateProb = null;
+            document.getElementById('comparison-card').style.display = 'none';
+        }
+
+        // Draw tradeoff curve on Canvas
+        function drawTradeoffCurve(selectedEps) {
+            const canvas = document.getElementById('tradeoff-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, w, h);
+            
+            // Draw horizontal grid lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 1; i < 4; i++) {
+                let y = 15 + i * 20;
+                ctx.beginPath();
+                ctx.moveTo(10, y);
+                ctx.lineTo(w - 10, y);
+                ctx.stroke();
+            }
+            
+            const epsilons = [0.1, 0.5, 1.0, 5.0, 10.0];
+            const modelAUCs = [0.7312, 0.7634, 0.7883, 0.8189, 0.8276];
+            
+            const getX = (index) => 20 + index * (w - 40) / 4;
+            const getY = (auc) => {
+                const minAUC = 0.70;
+                const maxAUC = 0.85;
+                return h - 15 - ((auc - minAUC) / (maxAUC - minAUC)) * (h - 30);
+            };
+            
+            // Draw Pareto curve path
+            ctx.beginPath();
+            ctx.strokeStyle = '#a78bfa';
+            ctx.lineWidth = 2.5;
+            for (let i = 0; i < epsilons.length; i++) {
+                const x = getX(i);
+                const y = getY(modelAUCs[i]);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Draw dots at discrete epsilon levels
+            for (let i = 0; i < epsilons.length; i++) {
+                const x = getX(i);
+                const y = getY(modelAUCs[i]);
+                const isSelected = Math.abs(epsilons[i] - selectedEps) < 1e-5;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, isSelected ? 5.5 : 3, 0, 2 * Math.PI);
+                ctx.fillStyle = isSelected ? '#34d399' : 'rgba(167, 139, 250, 0.6)';
+                ctx.fill();
+                
+                if (isSelected) {
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            }
+            
+            // Draw baseline limit indicator line
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.35)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            const baselineY = getY(0.8330);
+            ctx.beginPath();
+            ctx.moveTo(10, baselineY);
+            ctx.lineTo(w - 10, baselineY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.font = '8px sans-serif';
+            ctx.fillText('Baseline (No Privacy)', 12, baselineY - 3);
+        }
+
+        // Update Epsilon slider UI controls
+        function updateEpsilonControls() {
+            const slider = document.getElementById('epsilon-slider');
+            if (!slider) return;
+            const index = parseInt(slider.value);
+            const eps = epsilonLevels[index];
+            
+            document.getElementById('epsilon-display-val').textContent = `ε = ${eps.toFixed(1)}`;
+            
+            const badge = document.getElementById('eps-badge');
+            badge.textContent = epsilonPrivacyLevels[eps];
+            badge.className = epsilonBadgeClasses[eps];
+            
+            document.getElementById('eps-model-auc').textContent = epsilonModelAUC[eps].toFixed(4);
+            document.getElementById('eps-attack-auc').textContent = epsilonAttackAUC[eps].toFixed(4);
+            document.getElementById('eps-tradeoff-bar').innerHTML = `Privacy [${epsilonBars[eps]}] Accuracy`;
+            
+            const btnSpan = document.querySelector('#btn-run-private span');
+            if (btnSpan) btnSpan.textContent = `Predict With Privacy (ε=${eps.toFixed(1)})`;
+            
+            // Sync with Attack Demo simulator values
+            const simEpsVal = document.getElementById('sim-eps-val');
+            if (simEpsVal) simEpsVal.textContent = eps.toFixed(1);
+            const privSimEpsLabel = document.getElementById('priv-sim-eps-label');
+            if (privSimEpsLabel) privSimEpsLabel.textContent = eps.toFixed(1);
+            
+            drawTradeoffCurve(eps);
+        }
+
+        // Check API health on startup
+        document.addEventListener("DOMContentLoaded", () => {
+            checkHealth();
+            updateTotalCharges();
+            
+            // Set up slider display handlers
+            const tenureInput = document.getElementById('tenure');
+            const monthlyInput = document.getElementById('MonthlyCharges');
+            
+            tenureInput.addEventListener('input', () => {
+                document.getElementById('tenure-val').textContent = tenureInput.value;
+                updateTotalCharges();
+                resetPredictions();
+            });
+            
+            monthlyInput.addEventListener('input', () => {
+                document.getElementById('monthly-val').textContent = '$' + parseFloat(monthlyInput.value).toFixed(2);
+                updateTotalCharges();
+                resetPredictions();
+            });
+
+            // Set up select input reset triggers
+            document.querySelectorAll('select').forEach(sel => {
+                sel.addEventListener('change', resetPredictions);
+            });
+            
+            // Set up switches click actions to visually toggle active class & Yes/No status text
+            document.querySelectorAll('.switch input').forEach(sw => {
+                sw.addEventListener('change', (e) => {
+                    const card = e.target.closest('.toggle-card');
+                    const id = e.target.id;
+                    const valSpan = document.getElementById(`${id}-val`);
+                    if (e.target.checked) {
+                        card.classList.add('active');
+                        if (valSpan) valSpan.textContent = "Yes";
+                    } else {
+                        card.classList.remove('active');
+                        if (valSpan) valSpan.textContent = "No";
+                    }
+                    resetPredictions();
+                });
+            });
+            
+            // Ensure pre-checked items have active class & correct text on startup
+            document.querySelectorAll('.switch input').forEach(sw => {
+                const card = sw.closest('.toggle-card');
+                const id = sw.id;
+                const valSpan = document.getElementById(`${id}-val`);
+                if (sw.checked) {
+                    card.classList.add('active');
+                    if (valSpan) valSpan.textContent = "Yes";
+                } else {
+                    card.classList.remove('active');
+                    if (valSpan) valSpan.textContent = "No";
+                }
+            });
+
+            // Epsilon slider listener
+            const epsilonSlider = document.getElementById('epsilon-slider');
+            if (epsilonSlider) {
+                epsilonSlider.addEventListener('input', () => {
+                    updateEpsilonControls();
+                    resetPredictions();
+                });
+                // Initial controls load
+                updateEpsilonControls();
+            }
+        });
+
+        // Switch Tab functionality
+        function switchTab(tabId) {
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            
+            const activeLink = document.querySelector(`a[href="#${tabId}"]`);
+            if (activeLink) activeLink.classList.add('active');
+            
+            const activeSec = document.getElementById(`${tabId}-section`);
+            if (activeSec) activeSec.classList.add('active');
+
+            // Redraw canvas if predictor tab becomes active to handle hidden container canvas dimensions
+            if (tabId === 'predictor') {
+                const slider = document.getElementById('epsilon-slider');
+                if (slider) {
+                    const index = parseInt(slider.value);
+                    drawTradeoffCurve(epsilonLevels[index]);
+                }
+            }
+        }
+
+        // Programmatic toggle helper for switch cards
+        function toggleSwitch(id) {
+            const checkbox = document.getElementById(id);
+            checkbox.checked = !checkbox.checked;
+            const event = new Event('change');
+            checkbox.dispatchEvent(event);
+        }
+
+        // Calculate TotalCharges
+        function updateTotalCharges() {
+            const tenure = parseFloat(document.getElementById('tenure').value);
+            const monthly = parseFloat(document.getElementById('MonthlyCharges').value);
+            const total = (tenure * monthly).toFixed(2);
+            document.getElementById('TotalCharges').value = total;
+        }
+
+        // Check health of backend API
+        async function checkHealth() {
+            const indicator = document.getElementById("health-indicator");
+            const text = document.getElementById("health-text");
+            try {
+                const response = await fetch("/health");
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.model_loaded) {
+                        indicator.style.color = "#22c55e";
+                        text.textContent = "Healthy & Models Loaded";
+                    } else {
+                        indicator.style.color = "#eab308";
+                        text.textContent = "Degraded (Models Not Loaded)";
+                    }
+                } else {
+                    indicator.style.color = "#ef4444";
+                    text.textContent = "Disconnected (API Error)";
+                }
+            } catch (err) {
+                indicator.style.color = "#ef4444";
+                text.textContent = "Offline";
+            }
+        }
+
+        // Submit prediction requests
+        async function runPrediction(type) {
+            const btn = document.getElementById(`btn-run-${type}`);
+            const originalContent = btn.innerHTML;
+            
+            // Client-side validations
+            const tenureVal = parseFloat(document.getElementById('tenure').value);
+            const monthlyVal = parseFloat(document.getElementById('MonthlyCharges').value);
+            const totalChargesVal = parseFloat(document.getElementById('TotalCharges').value);
+
+            if (isNaN(tenureVal) || tenureVal < 0 || tenureVal > 72) {
+                alert("Validation Error: Tenure must be between 0 and 72 months.");
+                return;
+            }
+            if (isNaN(monthlyVal) || monthlyVal < 0 || monthlyVal > 150) {
+                alert("Validation Error: Monthly charges must be between $0 and $150.");
+                return;
+            }
+            if (isNaN(totalChargesVal) || totalChargesVal < 0) {
+                alert("Validation Error: Total charges must be a non-negative number.");
+                return;
+            }
+            
+            // Show loading spinner
+            btn.innerHTML = `<span class="spinner"></span> <span>Running prediction...</span>`;
+            btn.disabled = true;
+
+            const payload = {
+                tenure: tenureVal,
+                MonthlyCharges: monthlyVal,
+                TotalCharges: totalChargesVal,
+                Contract: parseInt(document.getElementById('Contract').value),
+                InternetService: parseInt(document.getElementById('InternetService').value),
+                PaymentMethod: parseInt(document.getElementById('PaymentMethod').value),
+                SeniorCitizen: document.getElementById('SeniorCitizen').checked ? 1 : 0,
+                Partner: document.getElementById('Partner').checked ? 1 : 0,
+                Dependents: document.getElementById('Dependents').checked ? 1 : 0,
+                PhoneService: document.getElementById('PhoneService').checked ? 1 : 0,
+                PaperlessBilling: document.getElementById('PaperlessBilling').checked ? 1 : 0
+            };
+
+            let endpoint = '/predict/standard';
+            if (type === 'private') {
+                const index = parseInt(document.getElementById('epsilon-slider').value);
+                payload.epsilon = epsilonLevels[index];
+                endpoint = '/predict/custom';
+            }
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({ detail: "Inference request failed." }));
+                    throw new Error(errData.detail || "Inference request failed.");
+                }
+
+                const result = await response.json();
+                updateResultPanel(type, result);
+            } catch (error) {
+                console.error(error);
+                let errMsg = error.message;
+                // If API is down, show: "API unavailable — start the server first"
+                if (error.message.includes("Failed to fetch") || error.message.includes("Load failed") || error.message.includes("fetch")) {
+                    errMsg = "API unavailable — start the server first";
+                }
+                
+                // Show actual error message in banner
+                if (type === 'standard') {
+                    document.getElementById("standard-warning-text").textContent = errMsg;
+                } else {
+                    document.getElementById("private-guarantee-text").textContent = errMsg;
+                }
+                alert(errMsg);
+            } finally {
+                // Restore button
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        }
+
+        // Update UI Panel with prediction results
+        function updateResultPanel(type, data) {
+            const probPct = (data.churn_probability * 100).toFixed(1);
+            const probPctElem = document.getElementById(`${type}-prob-pct`);
+            const badge = document.getElementById(`${type}-badge`);
+            const gauge = document.getElementById(`${type}-gauge`);
+            
+            // Animate percentage text
+            probPctElem.textContent = `${probPct}%`;
+            
+            // Color code based on probability: green under 30%, yellow 30-60%, red above 60%
+            let color = '#4ade80'; // Green
+            if (data.churn_probability >= 0.3 && data.churn_probability <= 0.6) {
+                color = '#facc15'; // Yellow
+            } else if (data.churn_probability > 0.6) {
+                color = '#f87171'; // Red
+            }
+            
+            const degrees = Math.round(data.churn_probability * 360);
+            gauge.style.background = `conic-gradient(${color} 0deg, ${color} ${degrees}deg, #1e293b ${degrees}deg, #1e293b 360deg)`;
+            probPctElem.style.color = color;
+            
+            // Set CHURN / STAY badge status in large text
+            if (data.churn_prediction === 1) {
+                badge.className = "badge-status badge-churn";
+                badge.style.fontSize = "1.2rem";
+                badge.style.padding = "0.75rem 2rem";
+                badge.innerHTML = `<i class="fa-solid fa-user-xmark"></i> CHURN`;
+            } else {
+                badge.className = "badge-status badge-stay";
+                badge.style.fontSize = "1.2rem";
+                badge.style.padding = "0.75rem 2rem";
+                badge.innerHTML = `<i class="fa-solid fa-user-check"></i> STAY`;
+            }
+
+            // Confidence level: Low/Medium/High based on probability distance from 0.5
+            const dist = Math.abs(data.churn_probability - 0.5);
+            let confidenceStr = "Medium";
+            let confidenceColor = "#facc15"; // Yellow
+            if (dist < 0.1) {
+                confidenceStr = "Low";
+                confidenceColor = "#f87171"; // Red
+            } else if (dist >= 0.3) {
+                confidenceStr = "High";
+                confidenceColor = "#4ade80"; // Green
+            }
+            const confElem = document.getElementById(`${type}-confidence`);
+            if (confElem) {
+                confElem.textContent = confidenceStr;
+                confElem.style.color = confidenceColor;
+            }
+
+            // Set Warning/Guarantee banners and private budget indicators
+            if (type === 'standard') {
+                const warningText = document.getElementById("standard-warning-text");
+                warningText.textContent = data.privacy_warning;
+                standardProb = data.churn_probability;
+            } else {
+                const bannerDiv = document.querySelector(".panel-private .banner");
+                bannerDiv.className = "banner banner-secure";
+                
+                privateEpsilon = data.epsilon !== undefined ? data.epsilon : 1.0;
+                privateAttackAUC = data.expected_attack_auc !== undefined ? data.expected_attack_auc : 0.5086;
+                privateLevel = data.privacy_level !== undefined ? data.privacy_level : "Strong";
+                
+                bannerDiv.innerHTML = `
+                    <i class="fa-solid fa-circle-check"></i>
+                    <div>
+                        <div style="font-weight: 700; color: #86efac;">Privacy Protected — ε=${privateEpsilon.toFixed(1)} Differential Privacy Active</div>
+                        <div style="font-size: 0.8rem; opacity: 0.9; margin-top: 2px;">Membership inference attack success reduced to ${privateAttackAUC.toFixed(4)} AUC (Baseline: 0.5672 AUC).</div>
+                    </div>
+                `;
+                
+                const budgetRow = document.getElementById("private-budget-row");
+                if (budgetRow) {
+                    budgetRow.style.display = "block";
+                    budgetRow.innerHTML = `Privacy Budget: <span style="font-weight: 700; color: var(--accent-color);">ε = ${privateEpsilon.toFixed(1)} (${privateLevel} Protection)</span>`;
+                }
+                
+                privateProb = data.churn_probability;
+            }
+
+            // Side-by-side comparison row trigger
+            if (standardProb !== null && privateProb !== null) {
+                const diff = Math.abs(standardProb - privateProb);
+                
+                document.getElementById('comp-standard-prob').textContent = `${(standardProb * 100).toFixed(1)}%`;
+                document.getElementById('comp-private-prob').textContent = `${(privateProb * 100).toFixed(1)}%`;
+                document.getElementById('comp-delta').textContent = `${(diff * 100).toFixed(1)}%`;
+                
+                // Which one to trust and why (1 sentence)
+                const trustText = `You should trust the Private Model because the standard model exposes training records to membership inference attacks (0.5672 AUC), whereas the private model mathematically secures training data (${privateAttackAUC.toFixed(4)} AUC) with a small privacy cost of ${(diff * 100).toFixed(1)}%.`;
+                document.getElementById('comp-trust-text').innerHTML = trustText;
+                
+                document.getElementById('comparison-card').style.display = 'block';
+                document.getElementById('comparison-card').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // --- Tooltip System ---
+        const tooltips = {
+            'epsilon': {
+                title: 'Epsilon (ε)',
+                desc: "Epsilon (ε) is the privacy budget. Lower values mean stronger mathematical privacy (more noise), while higher values mean weaker privacy (less noise) but higher model utility."
+            },
+            'auc': {
+                title: 'AUC (Area Under Curve)',
+                desc: "AUC measures model classification success. It ranges from 0.5 (random guessing) to 1.0 (perfect prediction). For attacks, we want AUC close to 0.5 (random) to indicate high privacy."
+            },
+            'differential privacy': {
+                title: 'Differential Privacy',
+                desc: "A rigorous mathematical standard that ensures the addition or removal of a single training record does not significantly alter the trained model's parameters, preventing leaks."
+            },
+            'membership inference': {
+                title: 'Membership Inference Attack',
+                desc: "An attack attempting to determine whether a target user's record was used to train the model, exploiting the gap in prediction confidence between trained and unseen records."
+            }
+        };
+
+        function showTooltip(event, term) {
+            event.stopPropagation();
+            const tooltipEl = document.getElementById('custom-tooltip');
+            if (!tooltipEl || !tooltips[term.toLowerCase()]) return;
+            
+            document.getElementById('tooltip-title').textContent = tooltips[term.toLowerCase()].title;
+            document.getElementById('tooltip-content').textContent = tooltips[term.toLowerCase()].desc;
+            
+            tooltipEl.style.display = 'block';
+            
+            const rect = event.currentTarget.getBoundingClientRect();
+            const scrollX = window.scrollX || window.pageXOffset;
+            const scrollY = window.scrollY || window.pageYOffset;
+            
+            tooltipEl.style.left = `${rect.left + scrollX - 10}px`;
+            tooltipEl.style.top = `${rect.bottom + scrollY + 8}px`;
+        }
+
+        // Close tooltip on click anywhere else
+        document.addEventListener('click', () => {
+            const tooltipEl = document.getElementById('custom-tooltip');
+            if (tooltipEl) tooltipEl.style.display = 'none';
+        });
+
+        // --- Live Attack Simulator Functions ---
+        async function simulateAttack(modelType) {
+            const sampleSelect = document.getElementById('attack-samples');
+            const nSamples = parseInt(sampleSelect.value) || 100;
+            
+            const isBaseline = modelType === 'baseline';
+            const spinner = document.getElementById(isBaseline ? 'base-atk-spinner' : 'priv-atk-spinner');
+            const content = document.getElementById(isBaseline ? 'base-atk-content' : 'priv-atk-content');
+            const statusBadge = document.getElementById(isBaseline ? 'base-atk-status-badge' : 'priv-atk-status-badge');
+            
+            // Get selected epsilon from slider
+            const slider = document.getElementById('epsilon-slider');
+            const epsilonVal = epsilonLevels[parseInt(slider.value)];
+            
+            if (!isBaseline) {
+                document.getElementById('priv-sim-eps-label').textContent = epsilonVal.toFixed(1);
+            }
+            
+            spinner.style.display = 'flex';
+            content.style.opacity = '0.3';
+            statusBadge.textContent = 'Simulating...';
+            statusBadge.className = 'badge-status badge-empty';
+            
+            try {
+                const response = await fetch('/attack/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model_type: modelType,
+                        n_samples: nSamples,
+                        epsilon: epsilonVal
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error("Simulation endpoint error");
+                }
+                
+                const data = await response.json();
+                updateAttackUI(modelType, data);
+            } catch (err) {
+                console.error(err);
+                alert("Simulation failed. Make sure the FastAPI server is running.");
+                statusBadge.textContent = 'Failed';
+                statusBadge.className = 'badge-status badge-churn';
+            } finally {
+                spinner.style.display = 'none';
+                content.style.opacity = '1';
+            }
+        }
+
+        async function simulateBothAttacks() {
+            const runBtn = document.getElementById('btn-run-both-attacks');
+            const originalContent = runBtn.innerHTML;
+            runBtn.disabled = true;
+            runBtn.innerHTML = `<span class="spinner"></span> <span>Running comparison...</span>`;
+            
+            try {
+                await Promise.all([
+                    simulateAttack('baseline'),
+                    simulateAttack('private')
+                ]);
+                
+                // Show summary card
+                const baseAcc = parseFloat(document.getElementById('base-sim-acc').textContent);
+                const privAcc = parseFloat(document.getElementById('priv-sim-acc').textContent);
+                const baseAuc = parseFloat(document.getElementById('base-sim-auc').textContent);
+                const privAuc = parseFloat(document.getElementById('priv-sim-auc').textContent);
+                
+                const accDiff = (baseAcc - privAcc).toFixed(0);
+                const summaryEl = document.getElementById('simulation-summary-card');
+                const summaryTextEl = document.getElementById('simulation-summary-text');
+                
+                let analysisHTML = `<strong>Attack Success Reduced:</strong> In the baseline model, the attacker had a <strong>${baseAcc}%</strong> success rate (AUC: ${baseAuc.toFixed(3)}). Differential privacy reduced this to <strong>${privAcc}%</strong> (AUC: ${privAuc.toFixed(3)}), `;
+                if (privAcc <= 52) {
+                    analysisHTML += `pushing the attacker to near random guessing (50% is equivalent to a coin toss). This proves that the training records are mathematically protected.`;
+                } else {
+                    analysisHTML += `achieving a protection gap of ${accDiff}% fewer leaked records.`;
+                }
+                
+                summaryTextEl.innerHTML = analysisHTML;
+                summaryEl.style.display = 'flex';
+                summaryEl.scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                console.error(err);
+            } finally {
+                runBtn.disabled = false;
+                runBtn.innerHTML = originalContent;
+            }
+        }
+
+        function updateAttackUI(modelType, data) {
+            const isBaseline = modelType === 'baseline';
+            const accPct = (data.attack_accuracy * 100).toFixed(0);
+            
+            document.getElementById(isBaseline ? 'base-sim-acc' : 'priv-sim-acc').textContent = `${accPct}%`;
+            document.getElementById(isBaseline ? 'base-sim-guesses' : 'priv-sim-guesses').textContent = `${data.correct_guesses} / ${data.total_guesses}`;
+            document.getElementById(isBaseline ? 'base-sim-auc' : 'priv-sim-auc').textContent = data.attack_auc.toFixed(4);
+            
+            // Set status badges
+            const badge = document.getElementById(isBaseline ? 'base-atk-status-badge' : 'priv-atk-status-badge');
+            if (isBaseline) {
+                badge.className = 'badge-status badge-churn';
+                badge.textContent = 'Vulnerable';
+            } else {
+                badge.className = data.attack_auc > 0.53 ? 'badge-status badge-empty' : 'badge-status badge-stay';
+                badge.textContent = data.attack_auc > 0.53 ? 'Moderately Protected' : 'Protected';
+            }
+            
+            // Description interpretation text
+            const desc = isBaseline 
+                ? `The attacker successfully reconstructed training membership for <strong>${data.correct_guesses} out of ${data.total_guesses}</strong> customers (AUC: ${data.attack_auc.toFixed(3)}). A clear privacy breach.`
+                : `The attacker was only right <strong>${data.correct_guesses} out of ${data.total_guesses}</strong> times (AUC: ${data.attack_auc.toFixed(3)}), which is ${accPct <= 52 ? 'barely better than a coin toss' : 'a major reduction in leak potential'}.`;
+            
+            document.getElementById(isBaseline ? 'base-sim-desc' : 'priv-sim-desc').innerHTML = desc;
+            
+            // Draw the Canvas histogram
+            drawHistogram(isBaseline ? 'base-atk-canvas' : 'priv-atk-canvas', data.member_confidences, data.nonmember_confidences);
+        }
+
+        function drawHistogram(canvasId, memberConfs, nonmemberConfs) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            ctx.clearRect(0, 0, w, h);
+            
+            // Number of bins
+            const numBins = 15;
+            const binMin = 0.5;
+            const binMax = 1.0;
+            
+            const memberCounts = new Array(numBins).fill(0);
+            const nonmemberCounts = new Array(numBins).fill(0);
+            
+            // Bin the confidences
+            memberConfs.forEach(c => {
+                let idx = Math.floor(((c - binMin) / (binMax - binMin)) * numBins);
+                if (idx < 0) idx = 0;
+                if (idx >= numBins) idx = numBins - 1;
+                memberCounts[idx]++;
+            });
+            
+            nonmemberConfs.forEach(c => {
+                let idx = Math.floor(((c - binMin) / (binMax - binMin)) * numBins);
+                if (idx < 0) idx = 0;
+                if (idx >= numBins) idx = numBins - 1;
+                nonmemberCounts[idx]++;
+            });
+            
+            const maxVal = Math.max(...memberCounts, ...nonmemberCounts, 1);
+            
+            // Draw grid lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 1; i <= 4; i++) {
+                let y = h - 22 - i * (h - 40) / 4;
+                ctx.beginPath();
+                ctx.moveTo(30, y);
+                ctx.lineTo(w - 10, y);
+                ctx.stroke();
+            }
+            
+            // Draw member and nonmember distribution overlapping
+            const leftOffset = 30;
+            const rightOffset = 10;
+            const bottomOffset = 22;
+            const barWidth = (w - leftOffset - rightOffset) / numBins;
+            
+            for (let i = 0; i < numBins; i++) {
+                let x = leftOffset + i * barWidth;
+                
+                // Member bar (Red)
+                let mh = (memberCounts[i] / maxVal) * (h - bottomOffset - 25);
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.5)';
+                ctx.fillRect(x + 1, h - bottomOffset - mh, barWidth - 2, mh);
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x + 1, h - bottomOffset - mh, barWidth - 2, mh);
+                
+                // Non-member bar (Blue)
+                let nmh = (nonmemberCounts[i] / maxVal) * (h - bottomOffset - 25);
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.5)';
+                ctx.fillRect(x + 1, h - bottomOffset - nmh, barWidth - 2, nmh);
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.7)';
+                ctx.strokeRect(x + 1, h - bottomOffset - nmh, barWidth - 2, nmh);
+            }
+            
+            // Axes lines
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1.5;
+            
+            // X-Axis
+            ctx.beginPath();
+            ctx.moveTo(leftOffset - 5, h - bottomOffset);
+            ctx.lineTo(w - 5, h - bottomOffset);
+            ctx.stroke();
+            
+            // Y-Axis
+            ctx.beginPath();
+            ctx.moveTo(leftOffset, 15);
+            ctx.lineTo(leftOffset, h - bottomOffset + 5);
+            ctx.stroke();
+            
+            // Axis labels
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '9px sans-serif';
+            ctx.fillText('0.5', leftOffset - 3, h - 8);
+            ctx.fillText('0.75', leftOffset + (w - leftOffset - rightOffset)/2 - 10, h - 8);
+            ctx.fillText('1.0', w - 22, h - 8);
+            
+            ctx.fillText('0', leftOffset - 15, h - bottomOffset + 3);
+            ctx.fillText(maxVal.toString(), leftOffset - 18, 20);
+            
+            // Legend
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.8)';
+            ctx.fillRect(w - 150, 4, 8, 8);
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '8px sans-serif';
+            ctx.fillText('Members (Train)', w - 138, 11);
+            
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.8)';
+            ctx.fillRect(w - 75, 4, 8, 8);
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('Non-Members', w - 63, 11);
+        }
+    </script>
+
+    <!-- Custom Tooltip Modal / Floating Card -->
+    <div id="custom-tooltip" class="glass-card" style="display: none; position: absolute; z-index: 1000; max-width: 280px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); border-color: var(--accent-color); padding: 0.75rem 1rem; font-size: 0.85rem; pointer-events: none; background: rgba(11, 15, 25, 0.95); backdrop-filter: blur(8px);">
+        <div style="font-weight: 700; color: var(--accent-color); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.25rem;">
+            <i class="fa-solid fa-lightbulb"></i> <span id="tooltip-title">Term</span>
+        </div>
+        <div id="tooltip-content" style="color: var(--text-secondary); line-height: 1.4;">Description goes here...</div>
+    </div>
+</body>
+</html>

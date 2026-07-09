@@ -1,0 +1,5 @@
+models/*.pkl
+models/*.npy
+graphs/*.png
+__pycache__/
+.gitattributes
