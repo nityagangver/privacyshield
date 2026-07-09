@@ -31,7 +31,19 @@ class AttackRequest(BaseModel):
     n_samples: int = Field(100, description="Number of samples to draw from train and test")
     epsilon: float = Field(1.0, description="Epsilon privacy budget if model_type is private")
 
-def run_training_in_background(app_state):
+def train_all_models(app_state):
+    import pandas as pd
+    import numpy as np
+    import os
+    import urllib.request
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import LabelEncoder, StandardScaler
+    from sklearn.metrics import roc_auc_score
+    import diffprivlib as dp
+    import joblib
+    import traceback
+    
     try:
         app_state.training_progress = "Creating directories..."
         os.makedirs("models", exist_ok=True)
@@ -50,33 +62,117 @@ def run_training_in_background(app_state):
         ]
         
         all_exist = all(os.path.exists(f) for f in required_files)
-        if not all_exist:
-            app_state.training_progress = "Running main.py training script (5-10 minutes)..."
-            import subprocess
-            subprocess.run(["python", "main.py"], check=True)
-        else:
+        if all_exist:
             app_state.training_progress = "Loading pre-existing models..."
+            print("All models exist. Loading pre-existing models...")
+            app_state.scaler = joblib.load("models/scaler.pkl")
+            app_state.baseline = joblib.load("models/baseline_model.pkl")
+            app_state.dp_models = {
+                0.1: joblib.load("models/dp_epsilon_01_model.pkl"),
+                0.5: joblib.load("models/dp_epsilon_05_model.pkl"),
+                1.0: joblib.load("models/dp_epsilon_1_model.pkl"),
+                5.0: joblib.load("models/dp_epsilon_5_model.pkl"),
+                10.0: joblib.load("models/dp_epsilon_10_model.pkl"),
+            }
+            app_state.dp_model = app_state.dp_models[1.0]
+            app_state.X_train_sample = np.load("models/X_train_sample.npy")
+            app_state.X_test_sample = np.load("models/X_test_sample.npy")
+            app_state.models_ready = True
+            app_state.model_loaded = True
+            app_state.training_progress = "Ready"
+            print("Pre-existing models loaded successfully.")
+            return
+
+        # Download CSV if not present
+        CSV_PATH = 'WA_Fn-UseC_-Telco-Customer-Churn.csv'
+        if not os.path.exists(CSV_PATH):
+            app_state.training_progress = "Downloading dataset..."
+            print("Downloading dataset...")
+            url = "https://raw.githubusercontent.com/nityagangver/privacyshield/main/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+            urllib.request.urlretrieve(url, CSV_PATH)
+            print("Dataset downloaded.")
+        
+        # Load and preprocess
+        app_state.training_progress = "Loading and preprocessing dataset..."
+        df = pd.read_csv(CSV_PATH)
+        df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce').fillna(0)
+        df['Churn'] = (df['Churn'] == 'Yes').astype(int)
+        df = df.drop('customerID', axis=1)
+        
+        cat_cols = df.select_dtypes(include='object').columns.tolist()
+        for col in cat_cols:
+            le = LabelEncoder()
+            df[col] = le.fit_transform(df[col])
+        
+        X = df.drop('Churn', axis=1)
+        y = df['Churn']
+        
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_scaled, y, test_size=0.2, stratify=y, random_state=42
+        )
+        
+        joblib.dump(scaler, 'models/scaler.pkl')
+        np.save('models/X_train_sample.npy', X_train[:200])
+        np.save('models/X_test_sample.npy', X_test[:200])
+        
+        # Train baseline
+        app_state.training_progress = "Training baseline model..."
+        print("Training baseline model...")
+        baseline = RandomForestClassifier(n_estimators=100, 
+                                          class_weight='balanced', 
+                                          random_state=42)
+        baseline.fit(X_train, y_train)
+        joblib.dump(baseline, 'models/baseline_model.pkl')
+        baseline_auc = roc_auc_score(y_test, baseline.predict_proba(X_test)[:,1])
+        print(f"Baseline AUC: {baseline_auc:.4f}")
+        
+        # Train DP models for epsilon = 0.1, 0.5, 1.0, 5.0, 10.0
+        dp_models = {}
+        for eps in [0.1, 0.5, 1.0, 5.0, 10.0]:
+            app_state.training_progress = f"Training DP model (epsilon={eps})..."
+            print(f"Training DP model epsilon={eps}...")
             
-        app_state.training_progress = "Loading trained pkl files..."
-        app_state.scaler = joblib.load("models/scaler.pkl")
-        app_state.baseline = joblib.load("models/baseline_model.pkl")
-        app_state.dp_models = {
-            0.1: joblib.load("models/dp_epsilon_01_model.pkl"),
-            0.5: joblib.load("models/dp_epsilon_05_model.pkl"),
-            1.0: joblib.load("models/dp_epsilon_1_model.pkl"),
-            5.0: joblib.load("models/dp_epsilon_5_model.pkl"),
-            10.0: joblib.load("models/dp_epsilon_10_model.pkl"),
-        }
-        app_state.dp_model = app_state.dp_models[1.0]
-        app_state.X_train_sample = np.load("models/X_train_sample.npy")
-        app_state.X_test_sample = np.load("models/X_test_sample.npy")
+            eps_str = str(eps).replace('.', '')
+            if eps == 1.0:
+                eps_str = "1"
+            elif eps == 5.0:
+                eps_str = "5"
+            elif eps == 10.0:
+                eps_str = "10"
+                
+            filename = f"models/dp_epsilon_{eps_str}_model.pkl"
+            
+            dp_clf = dp.models.RandomForestClassifier(
+                n_estimators=100, epsilon=eps, random_state=42
+            )
+            dp_clf.fit(X_train, y_train)
+            joblib.dump(dp_clf, filename)
+            dp_models[eps] = dp_clf
+            
+        dp_auc = roc_auc_score(y_test, dp_models[1.0].predict_proba(X_test)[:,1])
+        print(f"DP AUC: {dp_auc:.4f}")
+        
+        # Store results in app.state
+        app_state.baseline = baseline
+        app_state.dp_models = dp_models
+        app_state.dp_model = dp_models[1.0]
+        app_state.scaler = scaler
+        app_state.X_train_sample = X_train[:200]
+        app_state.X_test_sample = X_test[:200]
         app_state.models_ready = True
         app_state.model_loaded = True
+        app_state.baseline_auc = round(baseline_auc, 4)
+        app_state.dp_auc = round(dp_auc, 4)
         app_state.training_progress = "Ready"
-        print("Background training and loading finished successfully.")
+        print("All models ready.")
+        
     except Exception as e:
         app_state.training_progress = f"Training failed: {str(e)}"
-        print(f"Error during background training/loading: {e}")
+        print(f"Training failed: {e}")
+        traceback.print_exc()
         app_state.models_ready = False
         app_state.model_loaded = False
 
@@ -94,7 +190,7 @@ async def lifespan(app: FastAPI):
     app.state.X_test_sample = None
     app.state.training_progress = "Starting background training..."
     
-    thread = threading.Thread(target=run_training_in_background, args=(app.state,))
+    thread = threading.Thread(target=train_all_models, args=(app.state,))
     thread.daemon = True
     thread.start()
     
