@@ -29,7 +29,7 @@ CSV_PATH = 'WA_Fn-UseC_-Telco-Customer-Churn.csv'
 
 if not os.path.exists(CSV_PATH):
     print("Downloading dataset...")
-    url = "https://raw.githubusercontent.com/nityagangver/ChurnPrediction/main/WA_Fn-UseC_-Telco-Customer-Churn.csv"
+    url = "https://raw.githubusercontent.com/nityagangver/privacyshield/main/WA_Fn-UseC_-Telco-Customer-Churn.csv"
     urllib.request.urlretrieve(url, CSV_PATH)
     print("Dataset downloaded.")
 
